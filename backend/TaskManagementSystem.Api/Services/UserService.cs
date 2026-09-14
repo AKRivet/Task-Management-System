@@ -9,10 +9,20 @@ namespace TaskManagementSystem.Api.Services;
 public class UserService : IUserService
 {
     private readonly IRepository<User> _users;
+    private readonly IRepository<Project> _projects;
+    private readonly IRepository<TaskItem> _tasks;
+    private readonly IRepository<Comment> _comments;
 
-    public UserService(IRepository<User> users)
+    public UserService(
+        IRepository<User> users,
+        IRepository<Project> projects,
+        IRepository<TaskItem> tasks,
+        IRepository<Comment> comments)
     {
         _users = users;
+        _projects = projects;
+        _tasks = tasks;
+        _comments = comments;
     }
 
     public async Task<List<UserResponse>> GetAllAsync()
@@ -51,6 +61,23 @@ public class UserService : IUserService
     public async Task DeleteAsync(int id)
     {
         var user = await _users.GetByIdAsync(id) ?? throw AppException.NotFound($"User {id} not found.");
+
+        var ownedProjectCount = await _projects.Query().CountAsync(p => p.OwnerUserId == id);
+        var assignedTaskCount = await _tasks.Query().CountAsync(t => t.AssignedUserId == id);
+        var commentCount = await _comments.Query().CountAsync(c => c.UserId == id);
+
+        if (ownedProjectCount > 0 || assignedTaskCount > 0 || commentCount > 0)
+        {
+            var reasons = new List<string>();
+            if (ownedProjectCount > 0) reasons.Add($"owns {ownedProjectCount} project(s)");
+            if (assignedTaskCount > 0) reasons.Add($"is assigned {assignedTaskCount} task(s)");
+            if (commentCount > 0) reasons.Add($"wrote {commentCount} comment(s)");
+
+            throw AppException.Conflict(
+                $"Can't delete '{user.Name}': this person still {string.Join(" and ", reasons)}. Reassign or remove those first."
+            );
+        }
+
         _users.Remove(user);
         await _users.SaveChangesAsync();
     }
