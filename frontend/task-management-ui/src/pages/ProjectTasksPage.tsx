@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   createTask,
   deleteTask,
@@ -18,6 +18,7 @@ import { PriorityBadge } from '../components/PriorityBadge';
 import { ApiError } from '../api/client';
 
 export function ProjectTasksPage() {
+  const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const id = Number(projectId);
 
@@ -140,11 +141,13 @@ export function ProjectTasksPage() {
               />
             </li>
           ) : (
-            <li key={task.id} className="card task-card">
+            <li
+              key={task.id}
+              className="card task-card clickable-card"
+              onClick={() => navigate(`/projects/${id}/tasks/${task.id}`)}
+            >
               <div className="task-main">
-                <Link to={`/projects/${id}/tasks/${task.id}`} className="task-title">
-                  {task.title}
-                </Link>
+                <span className="task-title">{task.title}</span>
                 <div className="badge-row">
                   <StatusBadge name={task.statusName} />
                   <PriorityBadge priority={task.priority} />
@@ -159,7 +162,7 @@ export function ProjectTasksPage() {
                   {task.dueDate ? ` · Due ${task.dueDate}` : ''}
                 </p>
               </div>
-              <div className="row-actions">
+              <div className="row-actions" onClick={(e) => e.stopPropagation()}>
                 <button className="secondary" onClick={() => setEditingId(task.id)}>
                   Edit
                 </button>

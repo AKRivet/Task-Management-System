@@ -146,6 +146,17 @@
   font-weight: 700;
   font-size: 1.05rem;
   text-decoration: none;
+  color: var(--color-primary);
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.clickable-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.15);
 }
 
 .row-actions {

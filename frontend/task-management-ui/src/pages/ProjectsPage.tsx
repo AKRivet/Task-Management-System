@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { deleteProject, getProjects, getUsers, createProject, updateProject } from '../api/endpoints';
 import type { Project, User } from '../types';
 import { ProjectForm } from '../components/ProjectForm';
 import { ApiError } from '../api/client';
 
 export function ProjectsPage() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,17 +80,19 @@ export function ProjectsPage() {
               />
             </li>
           ) : (
-            <li key={project.id} className="card project-card">
+            <li
+              key={project.id}
+              className="card project-card clickable-card"
+              onClick={() => navigate(`/projects/${project.id}`)}
+            >
               <div>
-                <Link to={`/projects/${project.id}`} className="project-title">
-                  {project.name}
-                </Link>
+                <span className="project-title">{project.name}</span>
                 <p className="muted">{project.description || 'No description'}</p>
                 <p className="muted">
                   Owned by {project.ownerName} · {project.taskCount} task{project.taskCount === 1 ? '' : 's'}
                 </p>
               </div>
-              <div className="row-actions">
+              <div className="row-actions" onClick={(e) => e.stopPropagation()}>
                 <button className="secondary" onClick={() => setEditingId(project.id)}>
                   Edit
                 </button>
