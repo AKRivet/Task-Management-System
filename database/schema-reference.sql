@@ -7,9 +7,6 @@
 -- You should NOT need to run this file by hand; it exists so you can read
 -- the schema as plain SQL without digging through generated C# migration code.
 
--- Native Postgres enum type for task priority.
-CREATE TYPE task_priority AS ENUM ('Low', 'Medium', 'High', 'Critical');
-
 CREATE TABLE users (
     id          SERIAL PRIMARY KEY,
     name        VARCHAR(100) NOT NULL,
@@ -43,7 +40,8 @@ CREATE TABLE tasks (
     project_id        INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     assigned_user_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
     status_id         INTEGER NOT NULL REFERENCES statuses(id) ON DELETE RESTRICT,
-    priority          task_priority NOT NULL DEFAULT 'Medium',
+    priority          VARCHAR(20) NOT NULL DEFAULT 'Medium'
+                          CHECK (priority IN ('Low', 'Medium', 'High', 'Critical')),
     due_date          DATE,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()

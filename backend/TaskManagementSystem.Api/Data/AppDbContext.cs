@@ -19,10 +19,6 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Registers the native Postgres enum type task_priority; the naming
-        // convention plugin (snake_case) doesn't touch enum type names, so it's named explicitly.
-        modelBuilder.HasPostgresEnum<TaskPriority>(name: "task_priority");
-
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(u => u.Email).IsUnique();
@@ -51,9 +47,14 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<TaskItem>(entity =>
         {
-            // Explicit column type: HasPostgresEnum() alone doesn't reliably
-            // auto-map every property of that CLR enum type, so it's pinned here.
-            entity.Property(t => t.Priority).HasColumnType("task_priority");
+            // Priority is stored as text (not a plain int) so the column is
+            // human-readable in the database, with a CHECK constraint doing
+            // the validation Postgres's native enum type would otherwise do.
+            entity.Property(t => t.Priority).HasConversion<string>().HasMaxLength(20);
+            entity.ToTable(t => t.HasCheckConstraint(
+                "ck_tasks_priority",
+                "priority IN ('Low', 'Medium', 'High', 'Critical')"
+            ));
 
             entity.HasOne(t => t.Project)
                 .WithMany(p => p.Tasks)

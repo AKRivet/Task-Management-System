@@ -20,7 +20,6 @@ namespace TaskManagementSystem.Api.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "task_priority", new[] { "low", "medium", "high", "critical" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("TaskManagementSystem.Api.Entities.Comment", b =>
@@ -191,8 +190,10 @@ namespace TaskManagementSystem.Api.Migrations
                         .HasColumnType("date")
                         .HasColumnName("due_date");
 
-                    b.Property<int>("Priority")
-                        .HasColumnType("task_priority")
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("priority");
 
                     b.Property<int>("ProjectId")
@@ -224,7 +225,10 @@ namespace TaskManagementSystem.Api.Migrations
                     b.HasIndex("StatusId")
                         .HasDatabaseName("ix_tasks_status_id");
 
-                    b.ToTable("tasks", (string)null);
+                    b.ToTable("tasks", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_tasks_priority", "priority IN ('Low', 'Medium', 'High', 'Critical')");
+                        });
                 });
 
             modelBuilder.Entity("TaskManagementSystem.Api.Entities.TaskTag", b =>

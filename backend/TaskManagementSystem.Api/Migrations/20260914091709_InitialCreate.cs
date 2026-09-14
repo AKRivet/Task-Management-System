@@ -14,9 +14,6 @@ namespace TaskManagementSystem.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterDatabase()
-                .Annotation("Npgsql:Enum:task_priority", "low,medium,high,critical");
-
             migrationBuilder.CreateTable(
                 name: "statuses",
                 columns: table => new
@@ -91,7 +88,7 @@ namespace TaskManagementSystem.Api.Migrations
                     project_id = table.Column<int>(type: "integer", nullable: false),
                     assigned_user_id = table.Column<int>(type: "integer", nullable: true),
                     status_id = table.Column<int>(type: "integer", nullable: false),
-                    priority = table.Column<int>(type: "task_priority", nullable: false),
+                    priority = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     due_date = table.Column<DateOnly>(type: "date", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
@@ -99,6 +96,7 @@ namespace TaskManagementSystem.Api.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_tasks", x => x.id);
+                    table.CheckConstraint("ck_tasks_priority", "priority IN ('Low', 'Medium', 'High', 'Critical')");
                     table.ForeignKey(
                         name: "fk_tasks_projects_project_id",
                         column: x => x.project_id,

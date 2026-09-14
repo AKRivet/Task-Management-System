@@ -1,8 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using TaskManagementSystem.Api.Data;
-using TaskManagementSystem.Api.Entities;
 using TaskManagementSystem.Api.Middleware;
 using TaskManagementSystem.Api.Repositories;
 using TaskManagementSystem.Api.Services;
@@ -31,14 +29,8 @@ builder.Services.AddCors(options =>
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("Missing 'ConnectionStrings:Default' configuration.");
 
-// A native Postgres enum (task_priority) needs to be mapped on the Npgsql
-// data source itself, in addition to being registered in OnModelCreating.
-var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
-dataSourceBuilder.MapEnum<TaskPriority>("task_priority");
-var dataSource = dataSourceBuilder.Build();
-
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(dataSource).UseSnakeCaseNamingConvention());
+    options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention());
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
