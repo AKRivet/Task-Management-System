@@ -84,20 +84,6 @@ export function ProjectTasksPage() {
         {!showCreate && <button onClick={() => setShowCreate(true)}>+ New task</button>}
       </div>
 
-      {showCreate && (
-        <TaskForm
-          statuses={statuses}
-          users={users}
-          tags={tags}
-          onCancel={() => setShowCreate(false)}
-          onSubmit={async (data) => {
-            await createTask(id, data);
-            setShowCreate(false);
-            await loadTasks();
-          }}
-        />
-      )}
-
       <div className="filters">
         <label>
           Status
@@ -122,6 +108,20 @@ export function ProjectTasksPage() {
           </select>
         </label>
       </div>
+
+      {showCreate && (
+        <TaskForm
+          statuses={statuses}
+          users={users}
+          tags={tags}
+          onCancel={() => setShowCreate(false)}
+          onSubmit={async (data) => {
+            await createTask(id, data);
+            setShowCreate(false);
+            await loadTasks();
+          }}
+        />
+      )}
 
       <ul className="task-list">
         {tasks.map((task) =>
