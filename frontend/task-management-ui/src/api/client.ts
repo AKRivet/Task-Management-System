@@ -2,6 +2,17 @@
 // backend/TaskManagementSystem.Api/Properties/launchSettings.json).
 const API_BASE_URL = 'http://localhost:5174/api';
 
+const TOKEN_STORAGE_KEY = 'tms.token';
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_STORAGE_KEY);
+}
+
+export function setToken(token: string | null): void {
+  if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  else localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
+
 export class ApiError extends Error {
   status: number;
 
@@ -11,11 +22,23 @@ export class ApiError extends Error {
   }
 }
 
+// Set by AuthContext so a 401 response can immediately log the user out,
+// without client.ts needing to know about React state/routing directly.
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  const token = getToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers, ...options });
+
+  if (response.status === 401) {
+    onUnauthorized?.();
+  }
 
   if (!response.ok) {
     let message = response.statusText;

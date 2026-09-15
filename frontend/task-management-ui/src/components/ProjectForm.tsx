@@ -1,26 +1,29 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
+import { Button, Group, MultiSelect, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import type { ProjectInput } from '../api/endpoints';
 import type { Project, User } from '../types';
 
 interface ProjectFormProps {
   users: User[];
   initial?: Project;
   onCancel: () => void;
-  onSubmit: (data: { name: string; description: string | null; ownerUserId: number }) => Promise<void>;
+  onSubmit: (data: ProjectInput) => Promise<void>;
 }
 
 export function ProjectForm({ users, initial, onCancel, onSubmit }: ProjectFormProps) {
   const [name, setName] = useState(initial?.name ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
-  const [ownerUserId, setOwnerUserId] = useState(initial?.ownerUserId ?? users[0]?.id ?? 0);
+  const [memberIds, setMemberIds] = useState<string[]>(
+    initial ? initial.members.map((m) => String(m.id)) : []
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setSaving(true);
     setError(null);
     try {
-      await onSubmit({ name, description: description || null, ownerUserId });
+      await onSubmit({ name, description: description || null, memberUserIds: memberIds.map(Number) });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -29,36 +32,37 @@ export function ProjectForm({ users, initial, onCancel, onSubmit }: ProjectFormP
   };
 
   return (
-    <form className="card form" onSubmit={handleSubmit}>
-      <label>
-        Name
-        <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={150} />
-      </label>
-      <label>
-        Description
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-      </label>
-      {!initial && (
-        <label>
-          Owner
-          <select value={ownerUserId} onChange={(e) => setOwnerUserId(Number(e.target.value))} required>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
-        </label>
+    <Stack>
+      <TextInput label="Name" value={name} onChange={(e) => setName(e.currentTarget.value)} required maxLength={150} />
+      <Textarea
+        label="Description"
+        value={description}
+        onChange={(e) => setDescription(e.currentTarget.value)}
+        rows={2}
+      />
+      <MultiSelect
+        label="Members"
+        description="People who can see and work on this project"
+        placeholder={memberIds.length === 0 ? 'Select at least one person' : undefined}
+        data={users.map((u) => ({ value: String(u.id), label: u.name }))}
+        value={memberIds}
+        onChange={setMemberIds}
+        searchable
+        required
+      />
+      {error && (
+        <Text c="red" size="sm">
+          {error}
+        </Text>
       )}
-      {error && <p className="error-text">{error}</p>}
-      <div className="form-actions">
-        <button type="submit" disabled={saving}>
-          {saving ? 'Saving…' : initial ? 'Save changes' : 'Create project'}
-        </button>
-        <button type="button" className="secondary" onClick={onCancel}>
+      <Group justify="flex-end">
+        <Button variant="default" onClick={onCancel}>
           Cancel
-        </button>
-      </div>
-    </form>
+        </Button>
+        <Button onClick={handleSubmit} loading={saving} disabled={!name || memberIds.length === 0}>
+          {initial ? 'Save changes' : 'Create project'}
+        </Button>
+      </Group>
+    </Stack>
   );
 }

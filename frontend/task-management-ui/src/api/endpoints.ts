@@ -1,18 +1,51 @@
 import { api } from './client';
-import type { Comment, Project, Status, Tag, TaskItem, TaskPriority, User } from '../types';
+import type {
+  Comment,
+  DashboardStats,
+  PagedResult,
+  Project,
+  Status,
+  Tag,
+  User,
+  WorkItem,
+  WorkItemPriority,
+  WorkItemType,
+} from '../types';
 
 // Users
 export const getUsers = () => api.get<User[]>('/users');
-export const createUser = (data: { name: string; email: string }) => api.post<User>('/users', data);
+export const updateUser = (id: number, data: { name: string; email: string }) => api.put<User>(`/users/${id}`, data);
 export const deleteUser = (id: number) => api.delete(`/users/${id}`);
 
 // Projects
-export const getProjects = () => api.get<Project[]>('/projects');
+export interface ProjectQuery {
+  search?: string;
+  sortBy?: 'name' | 'createdAt' | 'workItemCount';
+  sortDir?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+}
+
+function buildQuery(params: object): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') search.set(key, String(value));
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : '';
+}
+
+export const getProjects = (query: ProjectQuery = {}) =>
+  api.get<PagedResult<Project>>(`/projects${buildQuery(query)}`);
 export const getProject = (id: number) => api.get<Project>(`/projects/${id}`);
-export const createProject = (data: { name: string; description: string | null; ownerUserId: number }) =>
-  api.post<Project>('/projects', data);
-export const updateProject = (id: number, data: { name: string; description: string | null }) =>
-  api.put<Project>(`/projects/${id}`, data);
+export interface ProjectInput {
+  name: string;
+  description: string | null;
+  memberUserIds: number[];
+}
+
+export const createProject = (data: ProjectInput) => api.post<Project>('/projects', data);
+export const updateProject = (id: number, data: ProjectInput) => api.put<Project>(`/projects/${id}`, data);
 export const deleteProject = (id: number) => api.delete(`/projects/${id}`);
 
 // Statuses (fixed lookup list, seeded by the backend migration)
@@ -21,41 +54,44 @@ export const getStatuses = () => api.get<Status[]>('/statuses');
 // Tags
 export const getTags = () => api.get<Tag[]>('/tags');
 export const createTag = (name: string) => api.post<Tag>('/tags', { name });
+export const deleteTag = (id: number) => api.delete(`/tags/${id}`);
 
-// Tasks
-export interface TaskFilters {
+// Work items
+export interface WorkItemFilters {
   projectId?: number;
   statusId?: number;
-  priority?: TaskPriority;
+  priority?: WorkItemPriority;
+  type?: WorkItemType;
+  parentWorkItemId?: number;
+  topLevelOnly?: boolean;
+  search?: string;
 }
 
-function buildTaskQuery(filters: TaskFilters): string {
-  const params = new URLSearchParams();
-  if (filters.projectId != null) params.set('projectId', String(filters.projectId));
-  if (filters.statusId != null) params.set('statusId', String(filters.statusId));
-  if (filters.priority) params.set('priority', filters.priority);
-  const qs = params.toString();
-  return qs ? `?${qs}` : '';
-}
+export const getWorkItems = (filters: WorkItemFilters = {}) =>
+  api.get<WorkItem[]>(`/workitems${buildQuery(filters)}`);
+export const getWorkItem = (id: number) => api.get<WorkItem>(`/workitems/${id}`);
 
-export const getTasks = (filters: TaskFilters = {}) => api.get<TaskItem[]>(`/tasks${buildTaskQuery(filters)}`);
-export const getTask = (id: number) => api.get<TaskItem>(`/tasks/${id}`);
-
-export interface TaskInput {
+export interface WorkItemInput {
   title: string;
   description: string | null;
+  type: WorkItemType;
   assignedUserId: number | null;
   statusId: number;
-  priority: TaskPriority;
+  priority: WorkItemPriority;
+  parentWorkItemId: number | null;
   dueDate: string | null;
   tagIds: number[];
 }
 
-export const createTask = (projectId: number, data: TaskInput) => api.post<TaskItem>('/tasks', { ...data, projectId });
-export const updateTask = (id: number, data: TaskInput) => api.put<TaskItem>(`/tasks/${id}`, data);
-export const deleteTask = (id: number) => api.delete(`/tasks/${id}`);
+export const createWorkItem = (projectId: number, data: WorkItemInput) =>
+  api.post<WorkItem>('/workitems', { ...data, projectId });
+export const updateWorkItem = (id: number, data: WorkItemInput) => api.put<WorkItem>(`/workitems/${id}`, data);
+export const deleteWorkItem = (id: number) => api.delete(`/workitems/${id}`);
 
 // Comments
-export const getComments = (taskId: number) => api.get<Comment[]>(`/tasks/${taskId}/comments`);
-export const createComment = (taskId: number, data: { userId: number; body: string }) =>
-  api.post<Comment>(`/tasks/${taskId}/comments`, data);
+export const getComments = (workItemId: number) => api.get<Comment[]>(`/workitems/${workItemId}/comments`);
+export const createComment = (workItemId: number, data: { userId: number; body: string }) =>
+  api.post<Comment>(`/workitems/${workItemId}/comments`, data);
+
+// Dashboard
+export const getDashboardStats = () => api.get<DashboardStats>('/dashboard/stats');

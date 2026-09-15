@@ -1,13 +1,17 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { createTag, getTags } from '../api/endpoints';
+import { useEffect, useState } from 'react';
+import { Badge, Button, CloseButton, Group, Text, TextInput, Title } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { createTag, deleteTag, getTags } from '../api/endpoints';
 import type { Tag } from '../types';
 import { ApiError } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export function TagsPage() {
+  const { isAdmin } = useAuth();
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const load = () => getTags().then(setTags);
 
@@ -15,42 +19,77 @@ export function TagsPage() {
     load().finally(() => setLoading(false));
   }, []);
 
-  const handleCreate = async (e: FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setSaving(true);
     try {
       await createTag(name);
       setName('');
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not create tag.');
+      notifications.show({
+        title: 'Could not create tag',
+        message: err instanceof ApiError ? err.message : 'Something went wrong.',
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) return <p>Loading…</p>;
+  const handleDelete = async (tag: Tag) => {
+    try {
+      await deleteTag(tag.id);
+      notifications.show({ message: `Deleted "${tag.name}"`, color: 'green' });
+      await load();
+    } catch (err) {
+      notifications.show({
+        title: 'Could not delete tag',
+        message: err instanceof ApiError ? err.message : 'Something went wrong.',
+        color: 'red',
+      });
+    }
+  };
+
+  if (loading) return <Text>Loading…</Text>;
 
   return (
     <div>
-      <h1>Tags</h1>
-      <p className="page-subtitle">Free-form labels you can attach to tasks, e.g. "urgent" or "bug".</p>
+      <Title mb="xs">Tags</Title>
+      <Text c="dimmed" mb="md">
+        Free-form labels you can attach to work items, e.g. "urgent" or "bug".
+      </Text>
 
-      <form className="card form form-row" onSubmit={handleCreate}>
-        <label>
-          Name
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={50} />
-        </label>
-        <button type="submit">Add tag</button>
+      <form onSubmit={handleCreate}>
+        <Group mb="md">
+          <TextInput
+            placeholder="New tag name"
+            value={name}
+            onChange={(e) => setName(e.currentTarget.value)}
+            required
+            maxLength={50}
+          />
+          <Button type="submit" loading={saving}>
+            Add tag
+          </Button>
+        </Group>
       </form>
-      {error && <p className="error-text">{error}</p>}
 
-      <div className="badge-row">
-        {tags.map((t) => (
-          <span key={t.id} className="badge badge-outline">
-            {t.name}
-          </span>
+      <Group gap="xs">
+        {tags.map((tag) => (
+          <Badge
+            key={tag.id}
+            variant="outline"
+            size="lg"
+            rightSection={
+              isAdmin ? <CloseButton size="xs" onClick={() => handleDelete(tag)} /> : undefined
+            }
+          >
+            {tag.name}
+          </Badge>
         ))}
-        {tags.length === 0 && <p className="empty-text">No tags yet — add one above.</p>}
-      </div>
+        {tags.length === 0 && <Text c="dimmed">No tags yet — add one above.</Text>}
+      </Group>
     </div>
   );
 }

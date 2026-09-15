@@ -1,10 +1,31 @@
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import './index.css'
+import { MantineProvider, createTheme } from '@mantine/core'
+import { ModalsProvider } from '@mantine/modals'
+import { Notifications } from '@mantine/notifications'
+
+import '@mantine/core/styles.css'
+import '@mantine/notifications/styles.css'
+import '@mantine/dates/styles.css'
+import '@mantine/charts/styles.css'
+
+import { AuthProvider } from './context/AuthContext'
 import App from './App.tsx'
 
+const theme = createTheme({
+  primaryColor: 'indigo',
+  defaultRadius: 'md',
+});
+
 createRoot(document.getElementById('root')!).render(
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>,
+  <MantineProvider theme={theme}>
+    <Notifications position="top-right" />
+    <ModalsProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </BrowserRouter>
+    </ModalsProvider>
+  </MantineProvider>,
 )

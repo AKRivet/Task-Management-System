@@ -1,16 +1,17 @@
-import type { TaskPriority } from '../types';
+import { Badge } from '@mantine/core';
+import type { WorkItemPriority } from '../types';
 
-const PRIORITY_COLORS: Record<TaskPriority, string> = {
-  Low: '#4b5563',
-  Medium: '#2563eb',
-  High: '#d97706',
-  Critical: '#dc2626',
+const PRIORITY_COLORS: Record<WorkItemPriority, string> = {
+  Low: 'gray',
+  Medium: 'blue',
+  High: 'orange',
+  Critical: 'red',
 };
 
-export function PriorityBadge({ priority }: { priority: TaskPriority }) {
+export function PriorityBadge({ priority }: { priority: WorkItemPriority }) {
   return (
-    <span className="badge" style={{ backgroundColor: PRIORITY_COLORS[priority] }}>
+    <Badge color={PRIORITY_COLORS[priority]} variant="light">
       {priority}
-    </span>
+    </Badge>
   );
 }
