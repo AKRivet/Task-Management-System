@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManagementSystem.Api.DTOs;
 using TaskManagementSystem.Api.Services;
@@ -5,7 +6,8 @@ using TaskManagementSystem.Api.Services;
 namespace TaskManagementSystem.Api.Controllers;
 
 [ApiController]
-[Route("api/tasks/{taskId:int}/comments")]
+[Authorize]
+[Route("api/workitems/{workItemId:int}/comments")]
 public class CommentsController : ControllerBase
 {
     private readonly ICommentService _service;
@@ -16,13 +18,13 @@ public class CommentsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<CommentResponse>>> GetByTask(int taskId) =>
-        Ok(await _service.GetByTaskIdAsync(taskId));
+    public async Task<ActionResult<List<CommentResponse>>> GetByWorkItem(int workItemId) =>
+        Ok(await _service.GetByWorkItemIdAsync(workItemId));
 
     [HttpPost]
-    public async Task<ActionResult<CommentResponse>> Create(int taskId, CreateCommentRequest request)
+    public async Task<ActionResult<CommentResponse>> Create(int workItemId, CreateCommentRequest request)
     {
-        var created = await _service.CreateAsync(taskId, request);
-        return CreatedAtAction(nameof(GetByTask), new { taskId }, created);
+        var created = await _service.CreateAsync(workItemId, request);
+        return CreatedAtAction(nameof(GetByWorkItem), new { workItemId }, created);
     }
 }

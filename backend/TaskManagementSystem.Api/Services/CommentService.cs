@@ -8,31 +8,33 @@ namespace TaskManagementSystem.Api.Services;
 public class CommentService : ICommentService
 {
     private readonly ICommentRepository _comments;
-    private readonly ITaskRepository _tasks;
+    private readonly IWorkItemRepository _workItems;
     private readonly IRepository<User> _users;
+    private readonly IProjectAccessService _access;
 
-    public CommentService(ICommentRepository comments, ITaskRepository tasks, IRepository<User> users)
+    public CommentService(ICommentRepository comments, IWorkItemRepository workItems, IRepository<User> users, IProjectAccessService access)
     {
         _comments = comments;
-        _tasks = tasks;
+        _workItems = workItems;
         _users = users;
+        _access = access;
     }
 
-    public async Task<List<CommentResponse>> GetByTaskIdAsync(int taskId)
+    public async Task<List<CommentResponse>> GetByWorkItemIdAsync(int workItemId)
     {
-        await EnsureTaskExists(taskId);
-        var comments = await _comments.GetByTaskIdAsync(taskId);
+        await EnsureAccessibleWorkItemAsync(workItemId);
+        var comments = await _comments.GetByWorkItemIdAsync(workItemId);
         return comments.Select(ToResponse).ToList();
     }
 
-    public async Task<CommentResponse> CreateAsync(int taskId, CreateCommentRequest request)
+    public async Task<CommentResponse> CreateAsync(int workItemId, CreateCommentRequest request)
     {
-        await EnsureTaskExists(taskId);
+        await EnsureAccessibleWorkItemAsync(workItemId);
 
         var user = await _users.GetByIdAsync(request.UserId)
             ?? throw AppException.NotFound($"User {request.UserId} not found.");
 
-        var comment = new Comment { TaskId = taskId, UserId = request.UserId, Body = request.Body };
+        var comment = new Comment { WorkItemId = workItemId, UserId = request.UserId, Body = request.Body };
         await _comments.AddAsync(comment);
         await _comments.SaveChangesAsync();
 
@@ -40,12 +42,13 @@ public class CommentService : ICommentService
         return ToResponse(comment);
     }
 
-    private async Task EnsureTaskExists(int taskId)
+    private async Task EnsureAccessibleWorkItemAsync(int workItemId)
     {
-        if (await _tasks.GetByIdAsync(taskId) is null)
-            throw AppException.NotFound($"Task {taskId} not found.");
+        var workItem = await _workItems.GetByIdAsync(workItemId)
+            ?? throw AppException.NotFound($"Work item {workItemId} not found.");
+        await _access.EnsureAccessAsync(workItem.ProjectId);
     }
 
     private static CommentResponse ToResponse(Comment c) =>
-        new(c.Id, c.TaskId, c.UserId, c.User?.Name ?? string.Empty, c.Body, c.CreatedAt);
+        new(c.Id, c.WorkItemId, c.UserId, c.User?.Name ?? string.Empty, c.Body, c.CreatedAt);
 }

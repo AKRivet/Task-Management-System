@@ -4,6 +4,6 @@ namespace TaskManagementSystem.Api.Services;
 
 public interface ICommentService
 {
-    Task<List<CommentResponse>> GetByTaskIdAsync(int taskId);
-    Task<CommentResponse> CreateAsync(int taskId, CreateCommentRequest request);
+    Task<List<CommentResponse>> GetByWorkItemIdAsync(int workItemId);
+    Task<CommentResponse> CreateAsync(int workItemId, CreateCommentRequest request);
 }

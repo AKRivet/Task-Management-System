@@ -10,10 +10,10 @@ public class CommentRepository : Repository<Comment>, ICommentRepository
     {
     }
 
-    public async Task<List<Comment>> GetByTaskIdAsync(int taskId) =>
+    public async Task<List<Comment>> GetByWorkItemIdAsync(int workItemId) =>
         await DbSet
             .Include(c => c.User)
-            .Where(c => c.TaskId == taskId)
+            .Where(c => c.WorkItemId == workItemId)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync();
 }

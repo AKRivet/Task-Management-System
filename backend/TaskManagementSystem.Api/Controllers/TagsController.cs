@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManagementSystem.Api.DTOs;
 using TaskManagementSystem.Api.Services;
@@ -5,6 +6,7 @@ using TaskManagementSystem.Api.Services;
 namespace TaskManagementSystem.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/tags")]
 public class TagsController : ControllerBase
 {
@@ -26,6 +28,7 @@ public class TagsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteAsync(id);

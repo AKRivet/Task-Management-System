@@ -9,19 +9,19 @@ namespace TaskManagementSystem.Api.Services;
 public class UserService : IUserService
 {
     private readonly IRepository<User> _users;
-    private readonly IRepository<Project> _projects;
-    private readonly IRepository<TaskItem> _tasks;
+    private readonly IRepository<ProjectMember> _projectMembers;
+    private readonly IRepository<WorkItem> _workItems;
     private readonly IRepository<Comment> _comments;
 
     public UserService(
         IRepository<User> users,
-        IRepository<Project> projects,
-        IRepository<TaskItem> tasks,
+        IRepository<ProjectMember> projectMembers,
+        IRepository<WorkItem> workItems,
         IRepository<Comment> comments)
     {
         _users = users;
-        _projects = projects;
-        _tasks = tasks;
+        _projectMembers = projectMembers;
+        _workItems = workItems;
         _comments = comments;
     }
 
@@ -34,16 +34,6 @@ public class UserService : IUserService
     public async Task<UserResponse> GetByIdAsync(int id)
     {
         var user = await _users.GetByIdAsync(id) ?? throw AppException.NotFound($"User {id} not found.");
-        return ToResponse(user);
-    }
-
-    public async Task<UserResponse> CreateAsync(CreateUserRequest request)
-    {
-        await EnsureEmailAvailable(request.Email, excludeUserId: null);
-
-        var user = new User { Name = request.Name, Email = request.Email };
-        await _users.AddAsync(user);
-        await _users.SaveChangesAsync();
         return ToResponse(user);
     }
 
@@ -62,15 +52,15 @@ public class UserService : IUserService
     {
         var user = await _users.GetByIdAsync(id) ?? throw AppException.NotFound($"User {id} not found.");
 
-        var ownedProjectCount = await _projects.Query().CountAsync(p => p.OwnerUserId == id);
-        var assignedTaskCount = await _tasks.Query().CountAsync(t => t.AssignedUserId == id);
+        var membershipCount = await _projectMembers.Query().CountAsync(m => m.UserId == id);
+        var assignedWorkItemCount = await _workItems.Query().CountAsync(w => w.AssignedUserId == id);
         var commentCount = await _comments.Query().CountAsync(c => c.UserId == id);
 
-        if (ownedProjectCount > 0 || assignedTaskCount > 0 || commentCount > 0)
+        if (membershipCount > 0 || assignedWorkItemCount > 0 || commentCount > 0)
         {
             var reasons = new List<string>();
-            if (ownedProjectCount > 0) reasons.Add($"owns {ownedProjectCount} project(s)");
-            if (assignedTaskCount > 0) reasons.Add($"is assigned {assignedTaskCount} task(s)");
+            if (membershipCount > 0) reasons.Add($"is a member of {membershipCount} project(s)");
+            if (assignedWorkItemCount > 0) reasons.Add($"is assigned {assignedWorkItemCount} work item(s)");
             if (commentCount > 0) reasons.Add($"wrote {commentCount} comment(s)");
 
             throw AppException.Conflict(
@@ -89,5 +79,5 @@ public class UserService : IUserService
             throw AppException.Conflict($"A user with email '{email}' already exists.");
     }
 
-    private static UserResponse ToResponse(User u) => new(u.Id, u.Name, u.Email, u.CreatedAt);
+    private static UserResponse ToResponse(User u) => new(u.Id, u.Name, u.Email, u.Role, u.CreatedAt);
 }

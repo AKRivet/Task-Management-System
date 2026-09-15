@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManagementSystem.Api.DTOs;
 using TaskManagementSystem.Api.Services;
@@ -5,6 +6,7 @@ using TaskManagementSystem.Api.Services;
 namespace TaskManagementSystem.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/statuses")]
 public class StatusesController : ControllerBase
 {

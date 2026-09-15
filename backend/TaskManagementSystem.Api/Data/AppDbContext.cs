@@ -12,23 +12,44 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<Status> Statuses => Set<Status>();
-    public DbSet<TaskItem> Tasks => Set<TaskItem>();
+    public DbSet<WorkItem> WorkItems => Set<WorkItem>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Tag> Tags => Set<Tag>();
-    public DbSet<TaskTag> TaskTags => Set<TaskTag>();
+    public DbSet<WorkItemTag> WorkItemTags => Set<WorkItemTag>();
+    public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(u => u.Email).IsUnique();
+            entity.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
+
+            // Seeded so there's always a way to log in on a fresh database.
+            // Password is "Admin@123" (see README) — hash precomputed with BCrypt.Net-Next.
+            entity.HasData(new User
+            {
+                Id = 1,
+                Name = "Admin",
+                Email = "admin@taskms.local",
+                PasswordHash = "$2a$11$yv.f2Z1nd3cSVq0lKN/TzubUO3Xl1WqUnipSqeG0e/rY1.OvZFCGe",
+                Role = UserRole.Admin,
+                CreatedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            });
         });
 
-        modelBuilder.Entity<Project>(entity =>
+        modelBuilder.Entity<ProjectMember>(entity =>
         {
-            entity.HasOne(p => p.Owner)
-                .WithMany(u => u.OwnedProjects)
-                .HasForeignKey(p => p.OwnerUserId)
+            entity.HasKey(pm => new { pm.ProjectId, pm.UserId });
+
+            entity.HasOne(pm => pm.Project)
+                .WithMany(p => p.Members)
+                .HasForeignKey(pm => pm.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(pm => pm.User)
+                .WithMany(u => u.ProjectMemberships)
+                .HasForeignKey(pm => pm.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -45,41 +66,52 @@ public class AppDbContext : DbContext
             );
         });
 
-        modelBuilder.Entity<TaskItem>(entity =>
+        modelBuilder.Entity<WorkItem>(entity =>
         {
-            // Priority is stored as text (not a plain int) so the column is
-            // human-readable in the database, with a CHECK constraint doing
-            // the validation Postgres's native enum type would otherwise do.
-            entity.Property(t => t.Priority).HasConversion<string>().HasMaxLength(20);
-            entity.ToTable(t => t.HasCheckConstraint(
-                "ck_tasks_priority",
-                "priority IN ('Low', 'Medium', 'High', 'Critical')"
-            ));
+            // Priority/Type are stored as text (not a plain int) so the columns are
+            // human-readable in the database, with CHECK constraints doing the
+            // validation Postgres's native enum type would otherwise do.
+            entity.Property(w => w.Priority).HasConversion<string>().HasMaxLength(20);
+            entity.Property(w => w.Type).HasConversion<string>().HasMaxLength(20);
+            entity.ToTable(w =>
+            {
+                w.HasCheckConstraint("ck_work_items_priority", "priority IN ('Low', 'Medium', 'High', 'Critical')");
+                w.HasCheckConstraint("ck_work_items_type", "type IN ('Feature', 'Story', 'Task', 'Bug')");
+            });
 
-            entity.HasOne(t => t.Project)
-                .WithMany(p => p.Tasks)
-                .HasForeignKey(t => t.ProjectId)
+            entity.HasOne(w => w.Project)
+                .WithMany(p => p.WorkItems)
+                .HasForeignKey(w => w.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(t => t.AssignedUser)
-                .WithMany(u => u.AssignedTasks)
-                .HasForeignKey(t => t.AssignedUserId)
+            entity.HasOne(w => w.AssignedUser)
+                .WithMany(u => u.AssignedWorkItems)
+                .HasForeignKey(w => w.AssignedUserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasOne(t => t.Status)
-                .WithMany(s => s.Tasks)
-                .HasForeignKey(t => t.StatusId)
+            entity.HasOne(w => w.Status)
+                .WithMany(s => s.WorkItems)
+                .HasForeignKey(w => w.StatusId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(t => t.ProjectId);
-            entity.HasIndex(t => t.StatusId);
+            // Self-referencing hierarchy (Feature -> Story -> Task/Bug, or sub-tasks).
+            // Deleting a parent cascades to its whole subtree, same as deleting a
+            // project cascades to its work items.
+            entity.HasOne(w => w.Parent)
+                .WithMany(w => w.Children)
+                .HasForeignKey(w => w.ParentWorkItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(w => w.ProjectId);
+            entity.HasIndex(w => w.StatusId);
+            entity.HasIndex(w => w.ParentWorkItemId);
         });
 
         modelBuilder.Entity<Comment>(entity =>
         {
-            entity.HasOne(c => c.Task)
-                .WithMany(t => t.Comments)
-                .HasForeignKey(c => c.TaskId)
+            entity.HasOne(c => c.WorkItem)
+                .WithMany(w => w.Comments)
+                .HasForeignKey(c => c.WorkItemId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(c => c.User)
@@ -87,7 +119,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(c => c.TaskId);
+            entity.HasIndex(c => c.WorkItemId);
         });
 
         modelBuilder.Entity<Tag>(entity =>
@@ -95,18 +127,18 @@ public class AppDbContext : DbContext
             entity.HasIndex(t => t.Name).IsUnique();
         });
 
-        modelBuilder.Entity<TaskTag>(entity =>
+        modelBuilder.Entity<WorkItemTag>(entity =>
         {
-            entity.HasKey(tt => new { tt.TaskId, tt.TagId });
+            entity.HasKey(wt => new { wt.WorkItemId, wt.TagId });
 
-            entity.HasOne(tt => tt.Task)
-                .WithMany(t => t.TaskTags)
-                .HasForeignKey(tt => tt.TaskId)
+            entity.HasOne(wt => wt.WorkItem)
+                .WithMany(w => w.WorkItemTags)
+                .HasForeignKey(wt => wt.WorkItemId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(tt => tt.Tag)
-                .WithMany(t => t.TaskTags)
-                .HasForeignKey(tt => tt.TagId)
+            entity.HasOne(wt => wt.Tag)
+                .WithMany(t => t.WorkItemTags)
+                .HasForeignKey(wt => wt.TagId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

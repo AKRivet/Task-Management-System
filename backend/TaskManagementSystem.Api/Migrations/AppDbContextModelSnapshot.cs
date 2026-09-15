@@ -40,22 +40,22 @@ namespace TaskManagementSystem.Api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<int>("TaskId")
-                        .HasColumnType("integer")
-                        .HasColumnName("task_id");
-
                     b.Property<int>("UserId")
                         .HasColumnType("integer")
                         .HasColumnName("user_id");
 
+                    b.Property<int>("WorkItemId")
+                        .HasColumnType("integer")
+                        .HasColumnName("work_item_id");
+
                     b.HasKey("Id")
                         .HasName("pk_comments");
 
-                    b.HasIndex("TaskId")
-                        .HasDatabaseName("ix_comments_task_id");
-
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_comments_user_id");
+
+                    b.HasIndex("WorkItemId")
+                        .HasDatabaseName("ix_comments_work_item_id");
 
                     b.ToTable("comments", (string)null);
                 });
@@ -82,17 +82,29 @@ namespace TaskManagementSystem.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<int>("OwnerUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("owner_user_id");
-
                     b.HasKey("Id")
                         .HasName("pk_projects");
 
-                    b.HasIndex("OwnerUserId")
-                        .HasDatabaseName("ix_projects_owner_user_id");
-
                     b.ToTable("projects", (string)null);
+                });
+
+            modelBuilder.Entity("TaskManagementSystem.Api.Entities.ProjectMember", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("project_id");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("ProjectId", "UserId")
+                        .HasName("pk_project_members");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_project_members_user_id");
+
+                    b.ToTable("project_members", (string)null);
                 });
 
             modelBuilder.Entity("TaskManagementSystem.Api.Entities.Status", b =>
@@ -165,7 +177,62 @@ namespace TaskManagementSystem.Api.Migrations
                     b.ToTable("tags", (string)null);
                 });
 
-            modelBuilder.Entity("TaskManagementSystem.Api.Entities.TaskItem", b =>
+            modelBuilder.Entity("TaskManagementSystem.Api.Entities.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("password_hash");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("role");
+
+                    b.HasKey("Id")
+                        .HasName("pk_users");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("ix_users_email");
+
+                    b.ToTable("users", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Email = "admin@taskms.local",
+                            Name = "Admin",
+                            PasswordHash = "$2a$11$yv.f2Z1nd3cSVq0lKN/TzubUO3Xl1WqUnipSqeG0e/rY1.OvZFCGe",
+                            Role = "Admin"
+                        });
+                });
+
+            modelBuilder.Entity("TaskManagementSystem.Api.Entities.WorkItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -190,6 +257,10 @@ namespace TaskManagementSystem.Api.Migrations
                         .HasColumnType("date")
                         .HasColumnName("due_date");
 
+                    b.Property<int?>("ParentWorkItemId")
+                        .HasColumnType("integer")
+                        .HasColumnName("parent_work_item_id");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -209,89 +280,60 @@ namespace TaskManagementSystem.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("title");
 
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_tasks");
+                        .HasName("pk_work_items");
 
                     b.HasIndex("AssignedUserId")
-                        .HasDatabaseName("ix_tasks_assigned_user_id");
+                        .HasDatabaseName("ix_work_items_assigned_user_id");
+
+                    b.HasIndex("ParentWorkItemId")
+                        .HasDatabaseName("ix_work_items_parent_work_item_id");
 
                     b.HasIndex("ProjectId")
-                        .HasDatabaseName("ix_tasks_project_id");
+                        .HasDatabaseName("ix_work_items_project_id");
 
                     b.HasIndex("StatusId")
-                        .HasDatabaseName("ix_tasks_status_id");
+                        .HasDatabaseName("ix_work_items_status_id");
 
-                    b.ToTable("tasks", null, t =>
+                    b.ToTable("work_items", null, t =>
                         {
-                            t.HasCheckConstraint("ck_tasks_priority", "priority IN ('Low', 'Medium', 'High', 'Critical')");
+                            t.HasCheckConstraint("ck_work_items_priority", "priority IN ('Low', 'Medium', 'High', 'Critical')");
+
+                            t.HasCheckConstraint("ck_work_items_type", "type IN ('Feature', 'Story', 'Task', 'Bug')");
                         });
                 });
 
-            modelBuilder.Entity("TaskManagementSystem.Api.Entities.TaskTag", b =>
+            modelBuilder.Entity("TaskManagementSystem.Api.Entities.WorkItemTag", b =>
                 {
-                    b.Property<int>("TaskId")
+                    b.Property<int>("WorkItemId")
                         .HasColumnType("integer")
-                        .HasColumnName("task_id");
+                        .HasColumnName("work_item_id");
 
                     b.Property<int>("TagId")
                         .HasColumnType("integer")
                         .HasColumnName("tag_id");
 
-                    b.HasKey("TaskId", "TagId")
-                        .HasName("pk_task_tags");
+                    b.HasKey("WorkItemId", "TagId")
+                        .HasName("pk_work_item_tags");
 
                     b.HasIndex("TagId")
-                        .HasDatabaseName("ix_task_tags_tag_id");
+                        .HasDatabaseName("ix_work_item_tags_tag_id");
 
-                    b.ToTable("task_tags", (string)null);
-                });
-
-            modelBuilder.Entity("TaskManagementSystem.Api.Entities.User", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id")
-                        .HasName("pk_users");
-
-                    b.HasIndex("Email")
-                        .IsUnique()
-                        .HasDatabaseName("ix_users_email");
-
-                    b.ToTable("users", (string)null);
+                    b.ToTable("work_item_tags", (string)null);
                 });
 
             modelBuilder.Entity("TaskManagementSystem.Api.Entities.Comment", b =>
                 {
-                    b.HasOne("TaskManagementSystem.Api.Entities.TaskItem", "Task")
-                        .WithMany("Comments")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_comments_tasks_task_id");
-
                     b.HasOne("TaskManagementSystem.Api.Entities.User", "User")
                         .WithMany("Comments")
                         .HasForeignKey("UserId")
@@ -299,102 +341,130 @@ namespace TaskManagementSystem.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_comments_users_user_id");
 
-                    b.Navigation("Task");
+                    b.HasOne("TaskManagementSystem.Api.Entities.WorkItem", "WorkItem")
+                        .WithMany("Comments")
+                        .HasForeignKey("WorkItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_comments_work_items_work_item_id");
+
+                    b.Navigation("User");
+
+                    b.Navigation("WorkItem");
+                });
+
+            modelBuilder.Entity("TaskManagementSystem.Api.Entities.ProjectMember", b =>
+                {
+                    b.HasOne("TaskManagementSystem.Api.Entities.Project", "Project")
+                        .WithMany("Members")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_project_members_projects_project_id");
+
+                    b.HasOne("TaskManagementSystem.Api.Entities.User", "User")
+                        .WithMany("ProjectMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_project_members_users_user_id");
+
+                    b.Navigation("Project");
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TaskManagementSystem.Api.Entities.Project", b =>
-                {
-                    b.HasOne("TaskManagementSystem.Api.Entities.User", "Owner")
-                        .WithMany("OwnedProjects")
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_projects_users_owner_user_id");
-
-                    b.Navigation("Owner");
-                });
-
-            modelBuilder.Entity("TaskManagementSystem.Api.Entities.TaskItem", b =>
+            modelBuilder.Entity("TaskManagementSystem.Api.Entities.WorkItem", b =>
                 {
                     b.HasOne("TaskManagementSystem.Api.Entities.User", "AssignedUser")
-                        .WithMany("AssignedTasks")
+                        .WithMany("AssignedWorkItems")
                         .HasForeignKey("AssignedUserId")
                         .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_tasks_users_assigned_user_id");
+                        .HasConstraintName("fk_work_items_users_assigned_user_id");
+
+                    b.HasOne("TaskManagementSystem.Api.Entities.WorkItem", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentWorkItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_work_items_work_items_parent_work_item_id");
 
                     b.HasOne("TaskManagementSystem.Api.Entities.Project", "Project")
-                        .WithMany("Tasks")
+                        .WithMany("WorkItems")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_tasks_projects_project_id");
+                        .HasConstraintName("fk_work_items_projects_project_id");
 
                     b.HasOne("TaskManagementSystem.Api.Entities.Status", "Status")
-                        .WithMany("Tasks")
+                        .WithMany("WorkItems")
                         .HasForeignKey("StatusId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_tasks_statuses_status_id");
+                        .HasConstraintName("fk_work_items_statuses_status_id");
 
                     b.Navigation("AssignedUser");
+
+                    b.Navigation("Parent");
 
                     b.Navigation("Project");
 
                     b.Navigation("Status");
                 });
 
-            modelBuilder.Entity("TaskManagementSystem.Api.Entities.TaskTag", b =>
+            modelBuilder.Entity("TaskManagementSystem.Api.Entities.WorkItemTag", b =>
                 {
                     b.HasOne("TaskManagementSystem.Api.Entities.Tag", "Tag")
-                        .WithMany("TaskTags")
+                        .WithMany("WorkItemTags")
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_task_tags_tags_tag_id");
+                        .HasConstraintName("fk_work_item_tags_tags_tag_id");
 
-                    b.HasOne("TaskManagementSystem.Api.Entities.TaskItem", "Task")
-                        .WithMany("TaskTags")
-                        .HasForeignKey("TaskId")
+                    b.HasOne("TaskManagementSystem.Api.Entities.WorkItem", "WorkItem")
+                        .WithMany("WorkItemTags")
+                        .HasForeignKey("WorkItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_task_tags_tasks_task_id");
+                        .HasConstraintName("fk_work_item_tags_work_items_work_item_id");
 
                     b.Navigation("Tag");
 
-                    b.Navigation("Task");
+                    b.Navigation("WorkItem");
                 });
 
             modelBuilder.Entity("TaskManagementSystem.Api.Entities.Project", b =>
                 {
-                    b.Navigation("Tasks");
+                    b.Navigation("Members");
+
+                    b.Navigation("WorkItems");
                 });
 
             modelBuilder.Entity("TaskManagementSystem.Api.Entities.Status", b =>
                 {
-                    b.Navigation("Tasks");
+                    b.Navigation("WorkItems");
                 });
 
             modelBuilder.Entity("TaskManagementSystem.Api.Entities.Tag", b =>
                 {
-                    b.Navigation("TaskTags");
-                });
-
-            modelBuilder.Entity("TaskManagementSystem.Api.Entities.TaskItem", b =>
-                {
-                    b.Navigation("Comments");
-
-                    b.Navigation("TaskTags");
+                    b.Navigation("WorkItemTags");
                 });
 
             modelBuilder.Entity("TaskManagementSystem.Api.Entities.User", b =>
                 {
-                    b.Navigation("AssignedTasks");
+                    b.Navigation("AssignedWorkItems");
 
                     b.Navigation("Comments");
 
-                    b.Navigation("OwnedProjects");
+                    b.Navigation("ProjectMemberships");
+                });
+
+            modelBuilder.Entity("TaskManagementSystem.Api.Entities.WorkItem", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("Comments");
+
+                    b.Navigation("WorkItemTags");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,6 +1,6 @@
 namespace TaskManagementSystem.Api.Entities;
 
-public enum TaskPriority
+public enum WorkItemPriority
 {
     Low,
     Medium,

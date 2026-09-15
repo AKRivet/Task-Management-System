@@ -2,39 +2,57 @@ using TaskManagementSystem.Api.Entities;
 
 namespace TaskManagementSystem.Api.DTOs;
 
-public record TaskResponse(
+public record WorkItemResponse(
     int Id,
     string Title,
     string? Description,
+    WorkItemType Type,
     int ProjectId,
     int? AssignedUserId,
     string? AssignedUserName,
     int StatusId,
     string StatusName,
-    TaskPriority Priority,
+    WorkItemPriority Priority,
+    int? ParentWorkItemId,
+    string? ParentTitle,
+    int ChildCount,
     DateOnly? DueDate,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     IReadOnlyList<TagResponse> Tags
 );
 
-public record CreateTaskRequest(
+public record CreateWorkItemRequest(
     string Title,
     string? Description,
+    WorkItemType Type,
     int ProjectId,
     int? AssignedUserId,
     int StatusId,
-    TaskPriority Priority,
+    WorkItemPriority Priority,
+    int? ParentWorkItemId,
     DateOnly? DueDate,
     IReadOnlyList<int>? TagIds
 );
 
-public record UpdateTaskRequest(
+public record UpdateWorkItemRequest(
     string Title,
     string? Description,
+    WorkItemType Type,
     int? AssignedUserId,
     int StatusId,
-    TaskPriority Priority,
+    WorkItemPriority Priority,
+    int? ParentWorkItemId,
     DateOnly? DueDate,
     IReadOnlyList<int>? TagIds
+);
+
+public record WorkItemFilter(
+    int? ProjectId,
+    int? StatusId,
+    WorkItemPriority? Priority,
+    WorkItemType? Type,
+    int? ParentWorkItemId,
+    bool TopLevelOnly,
+    string? Search
 );

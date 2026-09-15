@@ -1,7 +1,7 @@
+using TaskManagementSystem.Api.Entities;
+
 namespace TaskManagementSystem.Api.DTOs;
 
-public record UserResponse(int Id, string Name, string Email, DateTimeOffset CreatedAt);
-
-public record CreateUserRequest(string Name, string Email);
+public record UserResponse(int Id, string Name, string Email, UserRole Role, DateTimeOffset CreatedAt);
 
 public record UpdateUserRequest(string Name, string Email);
