@@ -81,7 +81,6 @@ builder.Services.AddScoped<IStatusService, StatusService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
-builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();

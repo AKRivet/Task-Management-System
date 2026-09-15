@@ -1,7 +1,6 @@
 import { api } from './client';
 import type {
   Comment,
-  DashboardStats,
   PagedResult,
   Project,
   Status,
@@ -92,6 +91,3 @@ export const deleteWorkItem = (id: number) => api.delete(`/workitems/${id}`);
 export const getComments = (workItemId: number) => api.get<Comment[]>(`/workitems/${workItemId}/comments`);
 export const createComment = (workItemId: number, data: { userId: number; body: string }) =>
   api.post<Comment>(`/workitems/${workItemId}/comments`, data);
-
-// Dashboard
-export const getDashboardStats = () => api.get<DashboardStats>('/dashboard/stats');

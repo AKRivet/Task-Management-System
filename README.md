@@ -2,8 +2,7 @@
 
 A fullstack project management tool modeled loosely on Azure DevOps: **Projects** contain a
 hierarchy of **Work Items** (Feature → Story → Task/Bug), with role-based access control, JWT
-authentication, project-level membership, comments, tags, search/sort/pagination, and a stats
-dashboard.
+authentication, project-level membership, comments, tags, and search/sort/pagination.
 
 Stack: **PostgreSQL** + **ASP.NET Core Web API** (.NET 10, EF Core/Npgsql) + **React 19** (TypeScript,
 Vite, Mantine UI).
@@ -53,7 +52,7 @@ Context comfortably covers. Everything else is fetched per-page.
 | **Repository pattern** | `Repositories/IRepository<T>` + per-entity repos | `DbContext`/`DbSet` already *is* a repository + unit of work, so this is somewhat redundant — kept anyway because layered Controller→Service→Repository is what most .NET shops (and reviewers) expect to see. |
 | **DTO pattern** | `DTOs/*.cs` | Entities never leave the Service layer. Decouples the wire format from the EF Core model and avoids over-posting / accidental exposure of fields like `PasswordHash`. |
 | **Self-referencing hierarchy** | `WorkItem.ParentWorkItemId` | Feature/Story/Task/Bug are one table with a `Type` discriminator and a nullable self-FK, not four separate tables — this is how Azure DevOps itself models work items. One set of Status/Priority/Comments/Tags machinery serves every type. |
-| **Guard/access-check service** | `IProjectAccessService` | Row-level authorization ("can this user see this project?") is centralized in one service and called from every layer that touches project-scoped data (Projects, WorkItems, Comments, Dashboard), instead of being re-implemented per controller. |
+| **Guard/access-check service** | `IProjectAccessService` | Row-level authorization ("can this user see this project?") is centralized in one service and called from every layer that touches project-scoped data (Projects, WorkItems, Comments), instead of being re-implemented per controller. |
 | **Global exception middleware** | `Middleware/ExceptionHandlingMiddleware` | A single `AppException` (with a status code) plus a middleware that catches it — no controller action needs its own try/catch. Also catches `DbUpdateException` (e.g. a blocked delete) and maps it to a `409`. |
 | **Enum-as-string + CHECK constraint** | `WorkItem.Priority`, `WorkItem.Type`, `User.Role` | See §6 — chosen over native Postgres `enum` types after hitting real EF Core/Npgsql mapping bugs. |
 | **JWT stateless auth** | `AuthService`, `TokenService` | No server-side session store; the token itself (id/name/role claims) is the source of truth per request, verified via `ICurrentUserService`. |
@@ -104,7 +103,6 @@ anyone else who registers becomes a Member.
 | Create/edit/delete a work item | ✅ | ✅ — *if* they have access to that work item's project |
 | Delete a person (User) | ✅ | ❌ `403 Forbidden` |
 | Delete a tag | ✅ | ❌ `403 Forbidden` |
-| View the dashboard | ✅ (system-wide stats) | ✅ (scoped to their own accessible projects) |
 
 This is deliberately lightweight — there's no per-permission matrix or custom roles, just two roles
 and one row-level rule (project access). A full RBAC system with configurable permissions would be
@@ -170,7 +168,6 @@ over-engineering for this scope.
 | `DELETE /api/projects/{id}`, `DELETE /api/users/{id}`, `DELETE /api/tags/{id}` | **Admin only** |
 | `GET /api/workitems?projectId=&statusId=&priority=&type=&parentWorkItemId=&topLevelOnly=&search=` | All filters optional and combinable |
 | `GET/POST /api/workitems/{workItemId}/comments` | |
-| `GET /api/dashboard/stats` | Scoped per §4/§5 |
 
 Full interactive docs: Swagger UI at `/swagger` when running the API in Development — includes an
 "Authorize" button to paste a JWT and exercise protected endpoints directly.

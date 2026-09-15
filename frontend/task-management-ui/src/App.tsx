@@ -3,7 +3,6 @@ import { AppShell, Burger, Group, NavLink as MantineNavLink, Text, Button, Badge
 import { useDisclosure } from '@mantine/hooks';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  IconDashboard,
   IconFolders,
   IconUsers,
   IconTags,
@@ -14,7 +13,6 @@ import { useAuth } from './context/AuthContext';
 import { RequireAuth } from './components/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ProjectWorkItemsPage } from './pages/ProjectWorkItemsPage';
 import { WorkItemDetailPage } from './pages/WorkItemDetailPage';
@@ -22,8 +20,7 @@ import { UsersPage } from './pages/UsersPage';
 import { TagsPage } from './pages/TagsPage';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: IconDashboard, end: true },
-  { to: '/projects', label: 'Projects', icon: IconFolders, end: false },
+  { to: '/', label: 'Projects', icon: IconFolders, end: true },
   { to: '/users', label: 'People', icon: IconUsers, end: false },
   { to: '/tags', label: 'Tags', icon: IconTags, end: false },
 ];
@@ -98,7 +95,7 @@ function App() {
           <RequireAuth>
             <Shell>
               <Routes>
-                <Route path="/" element={<DashboardPage />} />
+                <Route path="/" element={<ProjectsPage />} />
                 <Route path="/projects" element={<ProjectsPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/tags" element={<TagsPage />} />

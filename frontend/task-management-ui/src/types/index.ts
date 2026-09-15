@@ -73,12 +73,3 @@ export interface PagedResult<T> {
   page: number;
   pageSize: number;
 }
-
-export interface DashboardStats {
-  totalWorkItems: number;
-  overdueCount: number;
-  dueThisWeekCount: number;
-  byStatus: { statusName: string; count: number }[];
-  byPriority: { priority: WorkItemPriority; count: number }[];
-  byType: { type: WorkItemType; count: number }[];
-}

@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mantine/charts": "^9.6.1",
     "@mantine/core": "^9.6.1",
     "@mantine/dates": "^9.6.1",
     "@mantine/form": "^9.6.1",
@@ -21,8 +20,7 @@
     "dayjs": "^1.11.23",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.3",
-    "recharts": "^3.10.1"
+    "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
