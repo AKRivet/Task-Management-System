@@ -1,16 +1,15 @@
-# Task Management System
+# test implementation
 
-A fullstack project management tool modeled loosely on Azure DevOps: **Projects** contain a
+A project management tool modeled loosely on Azure DevOps: **Projects** contain a
 hierarchy of **Work Items** (Feature → Story → Task/Bug), with role-based access control, JWT
 authentication, project-level membership, comments, tags, and search/sort/pagination.
 
-Stack: **PostgreSQL** + **ASP.NET Core Web API** (.NET 10, EF Core/Npgsql) + **React 19** (TypeScript,
-Vite, Mantine UI).
+Stack: **React 19** (TypeScript, Vite, Mantine UI) + **ASP.NET Core Web API** (.NET 10, EF Core/Npgsql) + **PostgreSQL**.
 
 ```
-database/    Reference SQL (the EF Core migration in backend/ is the real source of truth)
-backend/     ASP.NET Core Web API — Controllers → Services → Repositories → PostgreSQL
 frontend/    React + TypeScript (Vite) + Mantine component library
+backend/     ASP.NET Core Web API — Controllers → Services → Repositories → PostgreSQL
+database/    Reference SQL (the EF Core migration in backend/ is the real source of truth)
 ```
 
 ---
@@ -176,35 +175,11 @@ Full interactive docs: Swagger UI at `/swagger` when running the API in Developm
 
 ## 8. Prerequisites
 
-- .NET SDK 10
 - Node.js 20+ and npm
+- .NET SDK 10 (for the API)
 - PostgreSQL running locally, with pgAdmin (or any client) to create the database
 
 ## 9. Setup
-
-### Database
-In pgAdmin: right-click **Databases → Create → Database**, name it `task_management_db`.
-
-### Backend
-```bash
-cd backend/TaskManagementSystem.Api
-```
-Open `appsettings.Development.json` (git-ignored — never committed) and fill in your real local
-Postgres password and a JWT signing key:
-```json
-"ConnectionStrings": { "Default": "Host=localhost;Port=5432;Database=task_management_db;Username=postgres;Password=<your password>" },
-"Jwt": { "Key": "<any long random string>", "Issuer": "TaskManagementSystem.Api", "Audience": "TaskManagementSystem.Client", "ExpiryMinutes": 120 }
-```
-Restore the `dotnet-ef` tool and create the schema:
-```bash
-dotnet tool restore
-dotnet tool run dotnet-ef database update
-```
-Run the API:
-```bash
-dotnet run
-```
-Swagger UI: http://localhost:5174/swagger
 
 ### Frontend
 ```bash
@@ -212,12 +187,32 @@ cd frontend/task-management-ui
 npm install
 npm run dev
 ```
-Open http://localhost:5173. The frontend calls the API at `http://localhost:5174/api` (see
+Open http://localhost:5173. The app calls the API at `http://localhost:5174/api` (see
 `src/api/client.ts`) — no extra configuration needed for local dev.
+
+### Backend (required for full functionality)
+
+**Database** — in pgAdmin: right-click **Databases → Create → Database**, name it `task_management_db`.
+
+```bash
+cd backend/TaskManagementSystem.Api
+```
+Create `appsettings.Development.json` (git-ignored) with your local Postgres credentials and a JWT signing key:
+```json
+"ConnectionStrings": { "Default": "Host=localhost;Port=5432;Database=task_management_db;Username=postgres;Password=<your password>" },
+"Jwt": { "Key": "<any long random string>", "Issuer": "TaskManagementSystem.Api", "Audience": "TaskManagementSystem.Client", "ExpiryMinutes": 120 }
+```
+Run migrations and start the API:
+```bash
+dotnet tool restore
+dotnet tool run dotnet-ef database update
+dotnet run
+```
+Swagger UI: http://localhost:5174/swagger
 
 ### First run
 The migration seeds one Admin account: **admin@taskms.local / Admin@123**. Log in as Admin to
-create the first project(s) and add People (via Register) as members; Members can then log in and
+create the first project(s) and add people (via Register) as members; Members can then log in and
 will only see projects they belong to or have work assigned in.
 
 ---
