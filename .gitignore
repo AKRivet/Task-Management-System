@@ -17,3 +17,6 @@ dist-ssr/
 # OS
 .DS_Store
 Thumbs.db
+
+# Preview builds
+.polaira/

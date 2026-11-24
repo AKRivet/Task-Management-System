@@ -16,11 +16,13 @@ const theme = createTheme({
   defaultRadius: 'md',
 });
 
+const basename = new URL(document.baseURI).pathname.replace(/\/[^/]*$/, '') || '/';
+
 createRoot(document.getElementById('root')!).render(
   <MantineProvider theme={theme}>
     <Notifications position="top-right" />
     <ModalsProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <AuthProvider>
           <App />
         </AuthProvider>
